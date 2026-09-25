@@ -1,0 +1,24 @@
+services:
+  claude-code:
+    build: .
+    image: claude-code
+    container_name: claude-code
+    restart: unless-stopped
+    init: true
+    stdin_open: true
+    tty: true
+    user: "${PUID:-1000}:${PGID:-1000}"
+    environment:
+      - HOME=/home/node
+      - TZ=${TZ:-Europe/Amsterdam}
+      # Claude Code is via npm als root geïnstalleerd; updaten gaat door het image opnieuw te bouwen
+      - DISABLE_AUTOUPDATER=1
+    volumes:
+      - ${PROJECTS_DIR:?zet PROJECTS_DIR in .env}:/workspace
+      - ${CLAUDE_HOME:?zet CLAUDE_HOME in .env}:/home/node
+      # Optioneel: Docker-socket, zodat Claude andere containers kan bekijken en aansturen.
+      # Let op: dit geeft de container in feite root-toegang tot de host.
+      # - /var/run/docker.sock:/var/run/docker.sock
+    # Hoort bij de Docker-socket: groep-ID van 'docker' op de host (getent group docker)
+    # group_add:
+    #   - "${DOCKER_GID:-999}"
