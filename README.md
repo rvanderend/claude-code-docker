@@ -79,6 +79,8 @@ Sluit je Claude af (`/exit`), dan sluit dat venster. Was het het laatste venster
 
 ### Op een telefoon
 
+De webterminal past zich aan de breedte van je telefoon aan. `claude-web` geeft ttyd daarvoor een eigen pagina met een viewport-tag, want die ontbreekt in de standaardpagina van ttyd.
+
 Een telefoontoetsenbord heeft geen pijltjes. Is het scherm smaller dan 60 tekens, dan toont het menu daarom een genummerde lijst: tik op het scherm, typ een nummer en druk op Enter. `Ctrl-b d` lukt op een telefoon ook niet. Herlaad de pagina om terug te gaan naar het menu, Claude draait gewoon door.
 
 Wil je altijd een van beide varianten, geef `claude-web` dan `MENU_STYLE=nummers` of `MENU_STYLE=fzf` mee als environment.
