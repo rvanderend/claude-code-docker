@@ -71,6 +71,9 @@ In een sessie:
 | `Ctrl-b n` / `Ctrl-b p` | Volgend / vorig venster (gesprek) |
 | `Ctrl-b c` | Nieuw venster met een shell |
 | muiswiel | Scrollen |
+| `Shift` + slepen | Tekst selecteren om te kopiëren |
+
+De muis staat in tmux aan, voor scrollen en het wisselen van vensters. Daardoor selecteert gewoon slepen in de browser niets. Houd daarom `Shift` ingedrukt terwijl je selecteert.
 
 Sluit je Claude af (`/exit`), dan sluit dat venster. Was het het laatste venster, dan stopt de sessie en kom je terug in het menu.
 
