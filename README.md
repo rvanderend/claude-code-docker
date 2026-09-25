@@ -77,6 +77,14 @@ De muis staat in tmux aan, voor scrollen en het wisselen van vensters. Daardoor 
 
 Sluit je Claude af (`/exit`), dan sluit dat venster. Was het het laatste venster, dan stopt de sessie en kom je terug in het menu.
 
+### Op een telefoon
+
+Een telefoontoetsenbord heeft geen pijltjes. Is het scherm smaller dan 60 tekens, dan toont het menu daarom een genummerde lijst: tik op het scherm, typ een nummer en druk op Enter. `Ctrl-b d` lukt op een telefoon ook niet. Herlaad de pagina om terug te gaan naar het menu, Claude draait gewoon door.
+
+Wil je altijd een van beide varianten, geef `claude-web` dan `MENU_STYLE=nummers` of `MENU_STYLE=fzf` mee als environment.
+
+Voor echt werken op je telefoon is **Remote Control** prettiger (zie [Na een rebuild of herstart](#na-een-rebuild-of-herstart)): dan bedien je een lopende sessie via de Claude-app.
+
 ## Bereikbaar maken
 
 De webterminal geeft volledige toegang tot je projecten. Via de Docker-socket kan hij in feite ook bij de hele host. **Zet hem nooit onbeveiligd open naar internet.**

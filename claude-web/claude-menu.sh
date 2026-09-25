@@ -37,6 +37,44 @@ launch() {
 
 open_shell() { code_it tmux -u new-session -A -s main -c "$1"; }
 
+# Smal scherm (telefoon): genummerde lijst in plaats van fzf, want op een telefoon-
+# toetsenbord ontbreken de pijltjes. MENU_STYLE=nummers of fzf dwingt een van beide af.
+use_numbers() {
+  case "${MENU_STYLE:-auto}" in
+    nummers) return 0 ;;
+    fzf)     return 1 ;;
+  esac
+  local cols
+  cols=$(stty size 2>/dev/null | cut -d' ' -f2)
+  [ "${cols:-80}" -lt 60 ]
+}
+
+# Laat een keuze maken uit de items en geef het gekozen item terug (leeg = niets gekozen,
+# status 2 = verbinding weg). Gebruik: pick <prompt> <fzf-hoogte> <fzf-kopregel> <item>...
+pick() {
+  local prompt="$1" height="$2" header="$3" i=1 item n
+  shift 3
+  if use_numbers; then
+    clear >&2
+    printf '%s\n%s\n\n' "Tik hier, typ een nummer en Enter" \
+      "Terug naar dit menu: pagina herladen" >&2
+    for item in "$@"; do
+      # Diep pad inkorten tot de laatste map, anders loopt de regel door op een telefoon
+      local icon="${item%% *}" rest="${item#* }"
+      [[ "$rest" == */* && "$rest" != *" "* ]] && item="$icon …/${rest##*/}"
+      printf '%2d  %s\n' "$i" "$item" >&2
+      i=$((i + 1))
+    done
+    printf '\n' >&2
+    read -rp "$prompt" n || return 2
+    [[ "$n" =~ ^[0-9]+$ ]] && [ "$n" -ge 1 ] && [ "$n" -le $# ] && printf '%s' "${!n}"
+    return 0
+  fi
+  local opts=(--prompt "$prompt" --height="$height" --reverse --border)
+  [ -n "$header" ] && opts+=(--header "$header")
+  printf '%s\n' "$@" | fzf "${opts[@]}"
+}
+
 find_repos() {
   find "$WS" -type d -name node_modules -prune -o \
              -type d -name vendor -prune -o \
@@ -66,8 +104,7 @@ action_menu() {
     items+=("▶ Verdergaan (laatste gesprek)" "✨ Nieuwe sessie" "📜 Kies een eerder gesprek")
   fi
   items+=("↩ Terug")
-  act=$(printf '%s\n' "${items[@]}" \
-    | fzf --prompt "Actie voor $(basename "$dir") > " --height=45% --reverse --border)
+  act=$(pick "Actie voor $(basename "$dir") > " 45% "" "${items[@]}") || { [ $? -eq 2 ] && exit 0; }
   case "$act" in
     "🔗"*) attach "$s" ;;
     "▶"*)  launch "$dir" "--continue" ;;
@@ -96,9 +133,9 @@ while true; do
   items+=("🐚 Shell (/workspace)")
   items+=("⏻ Sluiten")
 
-  sel=$(printf '%s\n' "${items[@]}" \
-    | fzf --prompt "Kies een project > " --height=70% --reverse --border \
-          --header "Enter=kiezen · typ om te zoeken · 🟢=draait · in sessie: Ctrl-b d = terug naar menu")
+  sel=$(pick "Kies een project > " 70% \
+    "Enter=kiezen · typ om te zoeken · 🟢=draait · in sessie: Ctrl-b d = terug naar menu" \
+    "${items[@]}") || { [ $? -eq 2 ] && exit 0; }
   [ -z "${sel:-}" ] && continue
 
   case "$sel" in
