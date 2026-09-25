@@ -120,6 +120,8 @@ docker exec -it claude-code bash
 
 In Portainer: **Containers** → **claude-code** → **>_ Console**, kies bij *Command* `/bin/bash`, vul bij *User* `node` in en klik **Connect**. Als root kom je in een andere home-map, zonder je Claude-login en gesprekken.
 
+Valt de console bij elke container direct weg en praat Portainer via een socket-proxy (`-H tcp://socket-proxy:2375`)? Dan blokkeert de proxy het starten van de shell: in zijn log staat `403` bij `POST /exec/…/start`. Zet bij de socket-proxy `EXEC=1` (naast `POST=1`). Let op: daarmee kan alles wat de proxy bereikt commando's uitvoeren in al je containers.
+
 Elke interactieve shell gaat automatisch naar tmux-sessie `main`. Het projectmenu zit in `claude-web`, dus hier start je Claude zelf (`cd /workspace/<project> && claude`). `Ctrl-b d` sluit de console, Claude draait door. Een shell zonder tmux start je met `NOTMUX=1 bash`.
 
 ## Na een rebuild of herstart
