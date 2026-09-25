@@ -1,6 +1,7 @@
 services:
+  # Werkomgeving: hier draaien Claude Code, tmux en je projecten
   claude-code:
-    build: .
+    build: ./claude-code
     image: claude-code
     container_name: claude-code
     restart: unless-stopped
@@ -16,9 +17,32 @@ services:
     volumes:
       - ${PROJECTS_DIR:?zet PROJECTS_DIR in .env}:/workspace
       - ${CLAUDE_HOME:?zet CLAUDE_HOME in .env}:/home/node
-      # Optioneel: Docker-socket, zodat Claude andere containers kan bekijken en aansturen.
+      # Optioneel: Docker-socket, zodat Claude zelf andere containers kan bekijken en aansturen.
       # Let op: dit geeft de container in feite root-toegang tot de host.
       # - /var/run/docker.sock:/var/run/docker.sock
-    # Hoort bij de Docker-socket: groep-ID van 'docker' op de host (getent group docker)
+    # Hoort bij de socket hierboven
     # group_add:
-    #   - "${DOCKER_GID:-999}"
+    #   - "${DOCKER_GID}"
+
+  # Browserterminal met projectmenu (ttyd op poort 7681); start Claude via 'docker exec' in claude-code
+  claude-web:
+    build: ./claude-web
+    image: claude-web
+    container_name: claude-web
+    restart: unless-stopped
+    depends_on:
+      - claude-code
+    user: "${PUID:-1000}:${PGID:-1000}"
+    group_add:
+      - "${DOCKER_GID:?zet DOCKER_GID in .env}"
+    environment:
+      - HOME=/tmp
+    # Inlog verplicht: wie deze terminal kan openen, heeft via de Docker-socket de hele host.
+    # Zit er al een reverse proxy met login voor (bv. Traefik + Authelia), dan kun je -c weglaten.
+    command: ["ttyd", "-W", "-p", "7681", "-c", "${WEB_USER:?zet WEB_USER in .env}:${WEB_PASSWORD:?zet WEB_PASSWORD in .env}", "/usr/local/bin/claude-menu.sh"]
+    ports:
+      - "${WEB_BIND:-127.0.0.1}:${WEB_PORT:-7681}:7681"
+    volumes:
+      # Menu en claude-code moeten dezelfde map op /workspace zien
+      - ${PROJECTS_DIR}:/workspace
+      - /var/run/docker.sock:/var/run/docker.sock
