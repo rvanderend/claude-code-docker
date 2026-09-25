@@ -19,7 +19,7 @@ has_session()  { code tmux has-session -t "=$1" 2>/dev/null; }
 running_list() { code tmux list-sessions -F '#{session_name}' 2>/dev/null; }
 
 attach() {
-  code_it tmux attach-session -t "=$1" \
+  code_it tmux -u attach-session -t "=$1" \
     || { echo "Sessie '$1' is al gestopt."; sleep 2; }
 }
 
@@ -35,7 +35,7 @@ launch() {
   attach "$s"
 }
 
-open_shell() { code_it tmux new-session -A -s main -c "$1"; }
+open_shell() { code_it tmux -u new-session -A -s main -c "$1"; }
 
 find_repos() {
   find "$WS" -type d -name node_modules -prune -o \

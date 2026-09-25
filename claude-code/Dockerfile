@@ -28,6 +28,9 @@ COPY tmux.conf /etc/tmux.conf
 COPY tmux-autoattach.sh /etc/tmux-autoattach.sh
 RUN cat /etc/tmux-autoattach.sh >> /etc/bash.bashrc
 
+# UTF-8, anders vervangt tmux emoji en kaderlijnen door _
+ENV LANG=C.UTF-8
+
 WORKDIR /workspace
 
 CMD ["sleep", "infinity"]
