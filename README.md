@@ -112,13 +112,15 @@ Standaard luistert hij alleen op `127.0.0.1:7681`, met inlog via `WEB_USER` en `
 
 ## Zonder browser: console of `docker exec`
 
-Je kunt ook direct in `claude-code`, via de console van Portainer of Dockge (kies `/bin/bash`) of met:
+Je kunt ook direct in `claude-code`, via de console van Portainer of Dockge of met:
 
 ```bash
 docker exec -it claude-code bash
 ```
 
-Elke interactieve shell gaat automatisch naar tmux-sessie `main`. Een shell zonder tmux start je met `NOTMUX=1 bash`.
+In Portainer: **Containers** → **claude-code** → **>_ Console**, kies bij *Command* `/bin/bash`, vul bij *User* `node` in en klik **Connect**. Als root kom je in een andere home-map, zonder je Claude-login en gesprekken.
+
+Elke interactieve shell gaat automatisch naar tmux-sessie `main`. Het projectmenu zit in `claude-web`, dus hier start je Claude zelf (`cd /workspace/<project> && claude`). `Ctrl-b d` sluit de console, Claude draait door. Een shell zonder tmux start je met `NOTMUX=1 bash`.
 
 ## Na een rebuild of herstart
 
