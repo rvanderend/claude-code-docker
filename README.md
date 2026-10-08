@@ -12,7 +12,7 @@ Er zijn twee containers:
 
 | Container | Wat | Map |
 |---|---|---|
-| `claude-code` | De werkomgeving: Claude Code, git, GitHub CLI, tmux. Hier draaien je gesprekken en staan je projecten (`/workspace`). | `claude-code/` |
+| `claude-code` | De werkomgeving: Claude Code, git, GitHub CLI, tmux, Python (met bibliotheken voor pdf, Word, Excel en PowerPoint) en handige CLI-tools zoals jq en dig. Hier draaien je gesprekken en staan je projecten (`/workspace`). | `claude-code/` |
 | `claude-web` | De browserterminal ([ttyd](https://github.com/tsl0922/ttyd)) met het projectmenu (`claude-menu.sh`, met fzf). Via `docker exec` start of opent hij Claude in `claude-code`. | `claude-web/` |
 
 ```
