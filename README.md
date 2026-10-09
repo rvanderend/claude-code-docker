@@ -147,7 +147,17 @@ Wil je dat Claude zelf andere containers kan bekijken of aansturen, bijvoorbeeld
 
 ## In een bestaande compose-stack
 
-Neem de services `claude-code` en `claude-web` over in je eigen `docker-compose.yml`. Zet `build:` op de mappen `claude-code/` en `claude-web/` van deze repo.
+Neem de services `claude-code` en `claude-web` over in je eigen `docker-compose.yml`. Zet `build:` op de mappen `claude-code/` en `claude-web/` van deze repo. Wijzigingen in de repo komen dan bij de volgende build vanzelf mee; een losse kopie van de Dockerfile raakt na een tijdje achter.
+
+Wil je extra pakketten in `claude-code`, bijvoorbeeld ffmpeg, geef ze dan mee als build-argument:
+
+```yaml
+  claude-code:
+    build:
+      context: /pad/naar/claude-code-docker/claude-code
+      args:
+        EXTRA_PACKAGES: "ffmpeg mkvtoolnix"
+```
 
 Gebruik je profiles en hangen services van elkaar af? Geef dan het profiel mee dat alles omvat, en gebruik `--no-deps` om alleen deze service te vervangen:
 
@@ -160,5 +170,5 @@ Heet de werkcontainer bij jou anders dan `claude-code`, geef `claude-web` dan `C
 
 ## Beperkingen
 
-- `claude-web` downloadt ttyd en de Docker CLI voor **x86_64**. Voor ARM (bv. Raspberry Pi) pas je de download-URL's in `claude-web/Dockerfile` aan.
+- Beide images downloaden de Docker CLI (en `claude-web` ook ttyd) voor **x86_64**. Voor ARM (bv. Raspberry Pi) pas je de download-URL's in beide Dockerfiles aan.
 - Het menu toont alleen mappen die een git-repo zijn.

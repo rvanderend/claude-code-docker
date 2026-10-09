@@ -1,9 +1,11 @@
 FROM node:22-slim
 
+# Extra apt-pakketten voor je eigen werk, bv. in docker-compose:
+#   build: { context: ..., args: { EXTRA_PACKAGES: "ffmpeg mkvtoolnix" } }
+ARG EXTRA_PACKAGES=""
+
 # Basisgereedschap. tmux houdt de console in leven als de browser sluit; procps levert ps/top.
-# docker.io levert de Docker CLI, alleen nodig als je de Docker-socket mount (zie docker-compose.yml).
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    docker.io \
     tmux \
     procps \
     git \
@@ -25,7 +27,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 \
     python3-pip \
     python3-venv \
+    $EXTRA_PACKAGES \
     && rm -rf /var/lib/apt/lists/*
+
+# Docker CLI (alleen de client), alleen nodig als je de Docker-socket mount (zie docker-compose.yml).
+# Statische build i.p.v. Debians docker.io: die is 20.10 (API 1.41) en Docker 29 eist minimaal 1.44.
+RUN curl -fsSL https://download.docker.com/linux/static/stable/x86_64/docker-29.8.2.tgz \
+      -o /tmp/docker.tgz \
+ && tar -xzf /tmp/docker.tgz -C /tmp \
+ && cp /tmp/docker/docker /usr/local/bin/docker && chmod +x /usr/local/bin/docker \
+ && rm -rf /tmp/docker /tmp/docker.tgz
 
 # Python-bibliotheken voor de document-skills. Systeembreed, zodat ze ook werken met
 # de gemounte home-map; --break-system-packages mag hier, het is een wegwerp-image.
