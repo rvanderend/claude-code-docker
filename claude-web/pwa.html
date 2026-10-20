@@ -1,0 +1,218 @@
+<!-- Webapp voor het beginscherm van een telefoon. De Dockerfile voegt dit vóór </head> in de pagina van ttyd in. -->
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Claude">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="theme-color" content="#2b2b2b">
+<link rel="apple-touch-icon" href="data:image/png;base64,__ICON__">
+<style>
+  html, body { background: #2b2b2b; }
+  #keybar { display: none; }
+  .touch #keybar {
+    display: flex; gap: 4px; position: fixed; left: 0; right: 0; z-index: 10;
+    height: 44px; padding: 4px; box-sizing: border-box; background: #1e1e1e;
+    -webkit-user-select: none; user-select: none; touch-action: none;
+  }
+  .touch #keybar button {
+    flex: 1; min-width: 0; padding: 0; border: 0; border-radius: 6px;
+    background: #444; color: #eee; font: 15px -apple-system, system-ui, sans-serif;
+  }
+  .touch #keybar button.on { background: #d97757; }
+  .touch body { overflow: hidden; }
+  .touch #terminal-container { position: fixed; left: 0; right: 0; top: 0; }
+</style>
+<script>
+(function () {
+  "use strict";
+  var touch = matchMedia("(pointer: coarse)").matches;
+
+  // --- Opnieuw verbinden ---------------------------------------------------------------
+  // Elke verbinding start bij ttyd een nieuw menu. iOS verbreekt de verbinding zodra de app
+  // op de achtergrond gaat. Daarom houdt de pagina de geopende tmux-sessie bij in de URL
+  // (?arg=<sessie>, het menu meldt die via de venstertitel). Na het verbreken herlaadt de
+  // pagina en koppelt het menu direct weer aan die sessie.
+  var sock = null, hiddenAt = 0;
+  function reconnect() {
+    var last = 0;
+    try { last = +sessionStorage.getItem("claudeReload") || 0; } catch (e) {}
+    if (Date.now() - last < 10000) return; // net al herladen: laat ttyd het verder afhandelen
+    try { sessionStorage.setItem("claudeReload", Date.now()); } catch (e) {}
+    location.reload();
+  }
+  window.WebSocket = new Proxy(window.WebSocket, {
+    construct: function (target, args) {
+      var s = Reflect.construct(target, args);
+      sock = s;
+      s.addEventListener("close", function (e) {
+        // 1000 = menu netjes afgesloten (⏻ Sluiten)
+        if (s === sock && e.code !== 1000 && !document.hidden) reconnect();
+      });
+      return s;
+    }
+  });
+  document.addEventListener("visibilitychange", function () {
+    if (document.hidden) { hiddenAt = Date.now(); return; }
+    if (!sock || sock.readyState !== WebSocket.OPEN || Date.now() - hiddenAt > 300000) reconnect();
+  });
+
+  var session = null;
+  function withTerm(fn) {
+    if (window.term) fn(window.term); else setTimeout(function () { withTerm(fn); }, 100);
+  }
+  withTerm(function (term) {
+    term.onTitleChange(function (title) {
+      var m = /^tmux:(.+)$/.exec(title);
+      session = m ? m[1] : null;
+      var url = new URL(location.href);
+      url.searchParams.delete("arg");
+      if (session) url.searchParams.set("arg", session);
+      history.replaceState(null, "", url);
+    });
+  });
+
+  if (!touch) return;
+  document.documentElement.classList.add("touch");
+
+  // --- Toetsenbalk ---------------------------------------------------------------------
+  // Een telefoontoetsenbord mist Esc, Tab, pijltjes en Ctrl. Ctrl is een plaktoets: tik
+  // erop en daarna op een letter op het toetsenbord voor Ctrl-<letter>.
+  var KEYS = [
+    ["Esc", "\x1b"], ["⇥", "\t"], ["⇧⇥", "\x1b[Z"], ["Ctrl", "ctrl"],
+    ["←", "\x1b[D"], ["↑", "\x1b[A"], ["↓", "\x1b[B"], ["→", "\x1b[C"],
+    ["📋", "paste"], ["☰", "menu"], ["⌄", "hide"], ["⏎", "\r"]
+  ];
+  var ctrl = false, ctrlBtn = null;
+
+  function send(term, data) {
+    if (ctrl && data.length === 1) {
+      var c = data.toUpperCase().charCodeAt(0);
+      if (c >= 64 && c <= 95) data = String.fromCharCode(c - 64);
+      setCtrl(false);
+    }
+    term.input(data, true);
+  }
+  function setCtrl(on) { ctrl = on; ctrlBtn.classList.toggle("on", on); }
+
+  function press(term, key) {
+    switch (key) {
+      case "ctrl": setCtrl(!ctrl); if (ctrl) term.focus(); return;
+      case "paste":
+        if (navigator.clipboard && navigator.clipboard.readText)
+          navigator.clipboard.readText().then(function (t) { if (t) term.paste(t); }, function () {});
+        return;
+      case "menu":
+        // In een sessie: Ctrl-b d (loskoppelen, Claude draait door). In het menu: herladen.
+        if (session) term.input("\x02d", true); else location.reload();
+        return;
+      case "hide": term.blur(); return;
+      default: term.input(key, true);
+    }
+  }
+
+  // --- Scrollen met een veeg ---------------------------------------------------------------
+  // Staat de muis aan (tmux), dan doet xterm.js niets met een veeg; tmux scrolt alleen met het
+  // muiswiel. Zet een verticale veeg daarom om in wielstappen. tmux scrolt 5 regels per stap,
+  // dus één stap per 2 regels vegen. Een korte tik blijft een tik (toetsenbord openen).
+  function swipeScroll(term) {
+    var el = term.element, screen = el.querySelector(".xterm-screen");
+    var y0 = null, x = 0, y = 0, acc = 0, swiping = false;
+    el.addEventListener("touchstart", function (e) {
+      y0 = null;
+      if (e.touches.length !== 1 || term.modes.mouseTrackingMode === "none") return;
+      x = e.touches[0].clientX; y0 = y = e.touches[0].clientY; acc = 0; swiping = false;
+    }, { capture: true, passive: true });
+    el.addEventListener("touchmove", function (e) {
+      if (y0 === null) return;
+      var ny = e.touches[0].clientY;
+      if (!swiping && Math.abs(ny - y0) < 10) return;
+      swiping = true;
+      e.preventDefault();
+      acc += y - ny; y = ny; // vinger omhoog = verder naar beneden in de tekst
+      var step = 2 * screen.clientHeight / term.rows;
+      while (Math.abs(acc) >= step) {
+        var down = acc > 0;
+        acc -= down ? step : -step;
+        screen.dispatchEvent(new WheelEvent("wheel", {
+          deltaY: down ? 1 : -1, deltaMode: WheelEvent.DOM_DELTA_LINE,
+          clientX: x, clientY: ny, bubbles: true, cancelable: true
+        }));
+      }
+    }, { capture: true, passive: false });
+  }
+
+  // --- Tikken in het menu ------------------------------------------------------------------
+  // Op een smal scherm toont het menu een genummerde lijst ("  3  📁 project"). Een tik op zo'n
+  // regel stuurt het nummer en Enter, en opent dan niet het toetsenbord.
+  function menuTap(term) {
+    var el = term.element, screen = el.querySelector(".xterm-screen"), start = null;
+    el.addEventListener("touchstart", function (e) {
+      start = null;
+      if (session || e.touches.length !== 1 || term.modes.mouseTrackingMode !== "none") return;
+      start = { x: e.touches[0].clientX, y: e.touches[0].clientY, t: Date.now() };
+    }, { capture: true, passive: true });
+    el.addEventListener("touchmove", function (e) {
+      if (start && Math.abs(e.touches[0].clientY - start.y) + Math.abs(e.touches[0].clientX - start.x) > 10) start = null;
+    }, { capture: true, passive: true });
+    el.addEventListener("touchend", function (e) {
+      if (!start || Date.now() - start.t > 500) return;
+      var rect = screen.getBoundingClientRect();
+      var row = Math.floor((start.y - rect.top) / (rect.height / term.rows));
+      var buf = term.buffer.active, line = buf.getLine(buf.viewportY + row);
+      var m = line && /^\s*(\d+)  \S/.exec(line.translateToString(true));
+      if (!m) return;
+      e.preventDefault();
+      term.selectLines(buf.viewportY + row, buf.viewportY + row);
+      setTimeout(function () { term.clearSelection(); }, 200);
+      term.input(m[1] + "\r", true);
+    }, { capture: true, passive: false });
+  }
+
+  function layout(term, bar) {
+    var vv = window.visualViewport;
+    var top = vv ? vv.offsetTop : 0, h = vv ? vv.height : innerHeight;
+    var tc = document.getElementById("terminal-container");
+    if (tc) { tc.style.top = top + "px"; tc.style.height = (h - bar.offsetHeight) + "px"; }
+    bar.style.top = (top + h - bar.offsetHeight) + "px";
+    if (term.fit) term.fit();
+  }
+
+  document.addEventListener("DOMContentLoaded", function () {
+    var bar = document.createElement("div");
+    bar.id = "keybar";
+    KEYS.forEach(function (k) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.textContent = k[0];
+      b.dataset.key = k[1];
+      if (k[1] === "ctrl") ctrlBtn = b;
+      bar.appendChild(b);
+    });
+    document.body.appendChild(bar);
+
+    withTerm(function (term) {
+      // Ctrl ingedrukt: de volgende letter van het toetsenbord wordt Ctrl-<letter>
+      term.attachCustomKeyEventHandler(function (e) {
+        if (!ctrl || e.type !== "keydown" || e.key.length !== 1) return true;
+        send(term, e.key);
+        e.preventDefault();
+        return false;
+      });
+      // pointerdown met preventDefault, zodat de terminal de focus houdt en het toetsenbord blijft
+      bar.addEventListener("pointerdown", function (e) {
+        var b = e.target.closest("button");
+        e.preventDefault();
+        if (b) press(term, b.dataset.key);
+      });
+      bar.addEventListener("touchstart", function (e) { e.preventDefault(); }, { passive: false });
+      swipeScroll(term);
+      menuTap(term);
+      var t = 0, relayout = function () { clearTimeout(t); t = setTimeout(function () { layout(term, bar); }, 50); };
+      if (window.visualViewport) {
+        visualViewport.addEventListener("resize", relayout);
+        visualViewport.addEventListener("scroll", relayout);
+      }
+      addEventListener("resize", relayout);
+      layout(term, bar);
+    });
+  });
+})();
+</script>

@@ -11,16 +11,25 @@ RUN curl -fsSL https://github.com/tsl0922/ttyd/releases/download/1.7.7/ttyd.x86_
 
 # De ingebouwde pagina van ttyd mist een viewport-tag. Een telefoon toont hem dan als verkleinde
 # desktoppagina: piepkleine tekst en evenveel kolommen als op een laptop. Haal die pagina op,
-# voeg de tag toe en laat 'ttyd' (een wrapper) hem altijd gebruiken. Zo werkt ook een eigen
-# 'command:' in docker-compose zonder aanpassing.
+# voeg de tag toe en daarnaast pwa.html: icoon, app-modus voor het beginscherm, toetsenbalk en
+# opnieuw verbinden. Laat 'ttyd' (een wrapper) die pagina altijd gebruiken. Zo werkt ook een
+# eigen 'command:' in docker-compose zonder aanpassing.
+# De wrapper zet ook -a aan, zodat de pagina na het opnieuw verbinden de open sessie aan het
+# menu kan meegeven (?arg=<sessie>), en een vaste titel (titleFixed).
+COPY pwa.html icon.png /tmp/pwa/
 RUN /usr/local/lib/ttyd -p 7999 -i lo true & P=$!; \
     curl -fsS --compressed --retry 10 --retry-connrefused --retry-delay 1 \
       http://127.0.0.1:7999/ -o /usr/local/share/ttyd-index.html; \
     kill $P; \
     sed -i 's|<head>|<head><meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">|' \
       /usr/local/share/ttyd-index.html \
+ && sed -i "s|__ICON__|$(base64 -w0 /tmp/pwa/icon.png)|" /tmp/pwa/pwa.html \
+ && perl -0pi -e 'BEGIN { local $/; open F, "<", "/tmp/pwa/pwa.html" or die; $p = <F> } s|</head>|$p</head>|' \
+      /usr/local/share/ttyd-index.html \
  && grep -q 'name="viewport"' /usr/local/share/ttyd-index.html \
- && printf '#!/bin/sh\nexec /usr/local/lib/ttyd -I /usr/local/share/ttyd-index.html "$@"\n' > /usr/local/bin/ttyd \
+ && grep -q 'id = "keybar"' /usr/local/share/ttyd-index.html \
+ && rm -rf /tmp/pwa \
+ && printf '#!/bin/sh\nexec /usr/local/lib/ttyd -I /usr/local/share/ttyd-index.html -a -t titleFixed=Claude "$@"\n' > /usr/local/bin/ttyd \
  && chmod +x /usr/local/bin/ttyd
 
 # Docker CLI (alleen de client), om via de socket in claude-code te komen

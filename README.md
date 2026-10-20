@@ -81,11 +81,28 @@ Sluit je Claude af (`/exit`), dan sluit dat venster. Was het het laatste venster
 
 De webterminal past zich aan de breedte van je telefoon aan. `claude-web` geeft ttyd daarvoor een eigen pagina met een viewport-tag, want die ontbreekt in de standaardpagina van ttyd.
 
-Een telefoontoetsenbord heeft geen pijltjes. Is het scherm smaller dan 60 tekens, dan toont het menu daarom een genummerde lijst: tik op het scherm, typ een nummer en druk op Enter. `Ctrl-b d` lukt op een telefoon ook niet. Herlaad de pagina om terug te gaan naar het menu, Claude draait gewoon door.
+Is het scherm smaller dan 60 tekens, dan toont het menu een genummerde lijst. Tik op een keuze, of typ een nummer en druk op Enter. Wil je altijd een van beide varianten, geef `claude-web` dan `MENU_STYLE=nummers` of `MENU_STYLE=fzf` mee als environment.
 
-Wil je altijd een van beide varianten, geef `claude-web` dan `MENU_STYLE=nummers` of `MENU_STYLE=fzf` mee als environment.
+Op een touchscreen staat onderin een toetsenbalk met de toetsen die een telefoontoetsenbord mist:
 
-Voor echt werken op je telefoon is **Remote Control** prettiger (zie [Na een rebuild of herstart](#na-een-rebuild-of-herstart)): dan bedien je een lopende sessie via de Claude-app.
+| Toets | Actie |
+|---|---|
+| `Esc` `⇥` `⇧⇥` | Escape (Claude onderbreken), Tab, Shift-Tab (modus wisselen) |
+| `Ctrl` | Plaktoets: tik erop en daarna op een letter, bv. `Ctrl` `c` |
+| `←` `↑` `↓` `→` | Pijltjes, ook zonder dat het toetsenbord open is |
+| `📋` | Plakken vanaf het klembord |
+| `☰` | Terug naar het menu (`Ctrl-b d`), Claude draait door |
+| `⌄` `⏎` | Toetsenbord verbergen, Enter |
+
+#### Als app op het beginscherm (iPhone)
+
+Open de site in Safari, tik op **Deel** → **Zet op beginscherm**. Daarna start hij schermvullend als app "Claude", met een eigen icoon.
+
+- Zet je de app even weg, dan verbreekt iOS de verbinding. Kom je terug, dan verbindt de pagina opnieuw en koppelt hij direct weer aan de sessie die open stond. De pagina houdt die sessie bij in de URL (`?arg=<sessie>`); daarvoor zet de `ttyd`-wrapper in het image `-a` aan.
+- De app op het beginscherm deelt geen cookies met Safari. Log er dus één keer apart in, bij een login via Authelia met "onthoud mij".
+- Plakken (`📋`) werkt alleen via HTTPS, dus achter een [reverse proxy](#bereikbaar-maken).
+
+Voor lange gesprekken lezen is **Remote Control** prettig (zie [Na een rebuild of herstart](#na-een-rebuild-of-herstart)): dan volg je een lopende sessie in de Claude-app.
 
 ## Bereikbaar maken
 

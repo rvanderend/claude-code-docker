@@ -18,9 +18,13 @@ session_name() {
 has_session()  { code tmux has-session -t "=$1" 2>/dev/null; }
 running_list() { code tmux list-sessions -F '#{session_name}' 2>/dev/null; }
 
+# De venstertitel vertelt de webapp (pwa.html) welke sessie open is. Na het opnieuw verbinden
+# start die het menu met die sessie als argument (?arg=<sessie>) en koppelt het direct weer aan.
 attach() {
+  printf '\033]0;tmux:%s\007' "$1"
   code_it tmux -u attach-session -t "=$1" \
     || { echo "Sessie '$1' is al gestopt."; sleep 2; }
+  printf '\033]0;menu\007'
 }
 
 # Start claude (met extra argumenten) in een nieuw venster van de projectsessie en koppel aan
@@ -35,7 +39,11 @@ launch() {
   attach "$s"
 }
 
-open_shell() { code_it tmux -u new-session -A -s main -c "$1"; }
+open_shell() {
+  printf '\033]0;tmux:main\007'
+  code_it tmux -u new-session -A -s main -c "$1"
+  printf '\033]0;menu\007'
+}
 
 # Smal scherm (telefoon): genummerde lijst in plaats van fzf, want op een telefoon-
 # toetsenbord ontbreken de pijltjes. MENU_STYLE=nummers of fzf dwingt een van beide af.
@@ -56,8 +64,8 @@ pick() {
   shift 3
   if use_numbers; then
     clear >&2
-    printf '%s\n%s\n\n' "Tik hier, typ een nummer en Enter" \
-      "Terug naar dit menu: pagina herladen" >&2
+    printf '%s\n%s\n\n' "Tik op een keuze, of typ een nummer en Enter" \
+      "Terug naar dit menu: ☰ onderin of pagina herladen" >&2
     for item in "$@"; do
       # Diep pad inkorten tot de laatste map, anders loopt de regel door op een telefoon
       local icon="${item%% *}" rest="${item#* }"
@@ -113,6 +121,11 @@ action_menu() {
     *) : ;;
   esac
 }
+
+# Meegegeven sessie (via de URL, ttyd -a): direct aankoppelen als die nog draait
+if [[ "${1:-}" =~ ^[A-Za-z0-9_-]+$ ]] && has_session "$1"; then
+  attach "$1"
+fi
 
 while true; do
   declare -A MAP=()
