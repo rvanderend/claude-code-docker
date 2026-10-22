@@ -176,6 +176,27 @@ Wil je extra pakketten in `claude-code`, bijvoorbeeld ffmpeg, geef ze dan mee al
         EXTRA_PACKAGES: "ffmpeg mkvtoolnix"
 ```
 
+### Browsers voor Claude (Playwright)
+
+Met `WITH_PLAYWRIGHT: "1"` komen Playwright, Chromium, WebKit (de engine van Safari) en de Playwright MCP-server in het image. Het image wordt daardoor ongeveer 1,3 GB groter.
+
+Claude kan dan in elk project websites openen, klikken, formulieren invullen en screenshots maken. Dat kan ook als iPhone, via WebKit.
+
+```yaml
+      args:
+        WITH_PLAYWRIGHT: "1"
+```
+
+Registreer de MCP-server eenmalig voor alle sessies. Dit komt in `~/.claude.json`, dus in de gemounte home-map:
+
+```bash
+claude mcp add --scope user playwright -- playwright-mcp --headless --browser chromium --isolated
+```
+
+Eigen scripts gebruiken `require('playwright')`. `NODE_PATH` wijst naar de globale modules, dus `npm install` is niet nodig.
+
+Moet Claude interne diensten testen? Hang `claude-code` dan ook aan het netwerk van die diensten, bijvoorbeeld je reverse-proxy-netwerk.
+
 Gebruik je profiles en hangen services van elkaar af? Geef dan het profiel mee dat alles omvat, en gebruik `--no-deps` om alleen deze service te vervangen:
 
 ```bash

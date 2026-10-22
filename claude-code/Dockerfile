@@ -61,6 +61,23 @@ RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
 
 RUN npm install -g @anthropic-ai/claude-code
 
+# Optioneel: Playwright met Chromium en WebKit (Safari-engine) plus de Playwright MCP-server,
+# zodat Claude in elk project websites kan openen, testen en screenshotten (ook als iPhone).
+# Aanzetten met build-arg WITH_PLAYWRIGHT=1 (maakt het image ~1 GB groter).
+# Eén versie: de algemene playwright krijgt exact de versie die de MCP-server gebruikt,
+# zodat beide dezelfde browsers delen. Scripts: require('playwright') (CommonJS, via NODE_PATH).
+ARG WITH_PLAYWRIGHT=0
+ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright \
+    NODE_PATH=/usr/local/lib/node_modules
+RUN if [ "$WITH_PLAYWRIGHT" = "1" ]; then \
+      npm install -g @playwright/mcp \
+   && PW_VERSION=$(node -p "require('/usr/local/lib/node_modules/@playwright/mcp/package.json').dependencies.playwright") \
+   && npm install -g "playwright@$PW_VERSION" \
+   && playwright install --with-deps chromium webkit \
+   && chmod -R a+rX "$PLAYWRIGHT_BROWSERS_PATH" \
+   && rm -rf /var/lib/apt/lists/* /root/.npm /root/.cache; \
+    fi
+
 # tmux-config voor iedereen, en elke interactieve console automatisch in tmux-sessie 'main'
 COPY tmux.conf /etc/tmux.conf
 COPY tmux-autoattach.sh /etc/tmux-autoattach.sh
