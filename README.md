@@ -187,10 +187,10 @@ Claude kan dan in elk project websites openen, klikken, formulieren invullen en 
         WITH_PLAYWRIGHT: "1"
 ```
 
-Registreer de MCP-server eenmalig voor alle sessies. Dit komt in `~/.claude.json`, dus in de gemounte home-map:
+Registreer de MCP-server eenmalig voor alle sessies. Dit komt in `~/.claude.json`, dus in de gemounte home-map. Met `--output-dir` schrijft de server zijn snapshots en screenshots niet in je projectmap:
 
 ```bash
-claude mcp add --scope user playwright -- playwright-mcp --headless --browser chromium --isolated
+claude mcp add --scope user playwright -- playwright-mcp --headless --browser chromium --isolated --output-dir /tmp/playwright-mcp
 ```
 
 Eigen scripts gebruiken `require('playwright')`. `NODE_PATH` wijst naar de globale modules, dus `npm install` is niet nodig.
