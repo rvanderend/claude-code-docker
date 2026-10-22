@@ -102,6 +102,15 @@ Open de site in Safari, tik op **Deel** → **Zet op beginscherm**. Daarna start
 - De app op het beginscherm deelt geen cookies met Safari. Log er dus één keer apart in, bij een login via Authelia met "onthoud mij".
 - Plakken (`📋`) werkt alleen via HTTPS, dus achter een [reverse proxy](#bereikbaar-maken).
 
+Testen zonder telefoon kan vanuit `claude-code`, als dat met [Playwright](#browsers-voor-claude-playwright) is gebouwd en claude-web kan bereiken. `claude-web/test-pwa.js` opent de webapp in WebKit als iPhone en controleert de toetsenbalk, tikken in het menu, vegen in tmux, de sessie in de URL en opnieuw verbinden:
+
+```bash
+node claude-web/test-pwa.js                      # standaard http://claude-web:7681/, iPhone 15
+CLAUDE_WEB_URL=http://claude-web:7681/ BROWSER=chromium DEVICE="iPhone SE" node claude-web/test-pwa.js
+```
+
+De test start geen Claude- of tmux-sessie; aan het eind kiest hij **⏻ Sluiten**. Een screenshot komt in `/tmp/claude-web-test`. Draait ttyd met `-c`, geef dan `WEB_USER` en `WEB_PASSWORD` mee. App-modus, het schermtoetsenbord en het verbreken op de achtergrond zijn alleen op een echte iPhone te testen.
+
 Voor lange gesprekken lezen is **Remote Control** prettig (zie [Na een rebuild of herstart](#na-een-rebuild-of-herstart)): dan volg je een lopende sessie in de Claude-app.
 
 ## Bereikbaar maken
